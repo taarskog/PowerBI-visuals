@@ -67,5 +67,9 @@ src/Clients/PowerBIVisualsPlayground/.vs
 src/Clients/PowerBIVisualsPlayground/bin
 src/Clients/PowerBIVisualsPlayground/styles/**/*.png
 
+#PowerBIVisualsPlayground
+lib/*.js
+lib/*.map
+
 # Styles
 src/Clients/**/styles/*.css

@@ -22,6 +22,7 @@
         "visuals/helloIVisual/helloIVisual.ts",
         "visuals/histogram/histogram.ts",
         "visuals/mekkoChart/mekkoChart.ts",
+        "visuals/pulseChart/pulseChart.ts",
         "visuals/radarChart/radarChart.ts",
         "visuals/sankeyDiagram/sankeyDiagram.ts",
         "visuals/streamGraph/streamGraph.ts",

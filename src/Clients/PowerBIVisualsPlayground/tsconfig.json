@@ -30,6 +30,7 @@
         "sampleDataViews/SimpleHistogramData.ts",
         "sampleDataViews/SimpleDataByCountries.ts",
         "sampleDataViews/SimpleCountriesData.ts",
+        "sampleDataViews/SimplePulseData.ts",
 
         "sampleData.ts",
         "hostControls.ts",
