@@ -36,7 +36,7 @@ module powerbi.visuals.samples {
         behavior?: IInteractiveBehavior;
     }
 
-    export interface PulseChartBehaviorOptions {
+    export interface PulseBehaviorOptions {
         layerOptions?: any[];
         clearCatcher: D3.Selection;
     }
@@ -493,7 +493,7 @@ module powerbi.visuals.samples {
 
         private animator: IGenericAnimator;
 
-        private animationHandler: PulseChartAnimator;
+        private animationHandler: PulseAnimator;
 
         private behavior: IInteractiveBehavior;
         private colors: IDataColorPalette;
@@ -567,7 +567,7 @@ module powerbi.visuals.samples {
                     this.behavior = options.behavior;
                 }
             } else {
-                this.behavior = new PulseChartBehavior([new ColumnChartWebBehavior()]);
+                this.behavior = new PulseBehavior([new ColumnChartWebBehavior()]);
             }
 
             this.margin = PulseChart.DefaultMargin;
@@ -878,7 +878,7 @@ module powerbi.visuals.samples {
             this.yAxis = svg.append('g').attr('class', 'y axis');
             this.animationDot = this.chart.append('circle').classed(PulseChart.AnimationDot.class, true).attr('display', 'none');;
 
-            this.animationHandler = new PulseChartAnimator(this, svg);
+            this.animationHandler = new PulseAnimator(this, svg);
 
             var style: IVisualStyle = options.style;
 
@@ -888,6 +888,11 @@ module powerbi.visuals.samples {
         }
 
         public update(options: VisualUpdateOptions): void {
+
+			if (this.animationHandler) {
+				this.animationHandler.pause();
+			}
+
             if (!options ||
                 !options.dataViews ||
                 !options.dataViews[0] ||
@@ -1141,6 +1146,13 @@ module powerbi.visuals.samples {
             return yAxisProperties;
         }
 
+        private isAutoPlay(): boolean {
+            return this.data &&
+                this.data.settings &&
+                this.data.settings.playback &&
+                this.data.settings.playback.autoplay;
+        }
+
         public render(suppressAnimations: boolean): CartesianVisualRenderResult {
             var duration = AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
             var result: CartesianVisualRenderResult;
@@ -1161,12 +1173,11 @@ module powerbi.visuals.samples {
                 .y((d: PulseChartDataPoint) => {
                     return yScale(d.y);
                 });
+            this.animationHandler.render();
 
             this.renderGaps(data, duration);
             this.renderAxes(data, duration);
-            this.renderChart(false);
-
-            this.animationHandler.render();
+            this.animationHandler.renderChart(this.isAutoPlay());
 
             return result;
         }
@@ -1266,8 +1277,8 @@ module powerbi.visuals.samples {
                     .attr("r", 5)
                     .style("fill", this.data.settings.popup.color);
 
-                var duration: number = 5000;
-                this.drawLines(data, duration, 0);
+                var duration: number = 10000;
+                this.drawLines(data, duration, this.animationSeries);
             } else {
                 this.hideDot();
                 this.drawLines(data);
@@ -1293,6 +1304,7 @@ module powerbi.visuals.samples {
         public stopAnimation() {
             this.pauseAnimation();
             this.animationSeries = 0;
+            this.animationIndex = 0;
             this.clearChart();
         }
 
@@ -1327,7 +1339,7 @@ module powerbi.visuals.samples {
            if (duration > 0) {
 
                this.animationIndex = 1;
-               this.animationSeries = seriesCount;
+			   this.animationSeries = seriesCount;
                this.drawLineWithAnimation();
 
            } else {
@@ -1359,8 +1371,8 @@ module powerbi.visuals.samples {
             this.animationDot.attr('display', 'none');
         }
 
-        private getInterpolation(data: PulseChartDataPoint[]) {
-             var start = this.animationIndex;
+        private getInterpolation(data: PulseChartDataPoint[], start: number) {
+             //var start = this.animationIndex;
              var stop: number = this.findNextDataPoint(data, start);
 
              var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>this.data.xScale,
@@ -1457,7 +1469,7 @@ module powerbi.visuals.samples {
                 .transition()
                 .duration(durationCallback)
                 .ease("linear")
-                .attrTween('d', (d: PulseChartSeries) => this.getInterpolation(d.data))
+                .attrTween('d', (d: PulseChartSeries) => this.getInterpolation(d.data, start))
                 .each("end", () => {
                     console.log('end transition');
                 });
@@ -1477,10 +1489,19 @@ module powerbi.visuals.samples {
             });
         }
 
+		private getPauseDuration() {
+			if (this.data &&
+				this.data.settings &&
+				this.data.settings.playback) {
+					return this.data.settings.playback.pauseDuration * 1000;
+				}
+			return PulseChart.DefaultSettings.playback.pauseDuration * 1000;
+		}
+
         private nextLineWithAnimation() {
             setTimeout(() => {
                 this.drawLineWithAnimation();
-            }, 5000);
+            }, this.getPauseDuration());
         }
 
         private drawDots(data: PulseChartData): void {
@@ -2121,13 +2142,13 @@ module powerbi.visuals.samples {
         }
     }
 
-    enum PulseChartAnimatorStates {
+    enum PulseAnimatorStates {
         Ready,
         Play,
         Paused
     }
 
-    export class PulseChartAnimator {
+    export class PulseAnimator {
 
         private chart: PulseChart;
         private svg: D3.Selection;
@@ -2140,15 +2161,15 @@ module powerbi.visuals.samples {
         private static AnimationPause: ClassAndSelector = createClassAndSelector('animationPause');
         private static AnimationToStart: ClassAndSelector = createClassAndSelector('animationToStart');
         private static AnimationToEnd: ClassAndSelector = createClassAndSelector('animationToEnd');
-        private animatorState: PulseChartAnimatorStates;
+        private animatorState: PulseAnimatorStates;
 
         constructor(chart: PulseChart, svg: D3.Selection) {
             this.chart = chart;
             this.svg = svg;
 
-            this.animatorState = PulseChartAnimatorStates.Ready;
+            this.animatorState = PulseAnimatorStates.Ready;
 
-            this.animationPlay  = this.svg.append('g').classed(PulseChartAnimator.AnimationPlay.class, true);
+            this.animationPlay  = this.svg.append('g').classed(PulseAnimator.AnimationPlay.class, true);
             this.animationPlay
                 .append("circle")
                 .attr("cx", 12)
@@ -2161,7 +2182,7 @@ module powerbi.visuals.samples {
                 .attr("d", "M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-3 17v-10l9 5.146-9 4.854z")
                 .style("fill", "#777");
 
-            this.animationPause = this.svg.append('g').classed(PulseChartAnimator.AnimationPause.class, true);
+            this.animationPause = this.svg.append('g').classed(PulseAnimator.AnimationPause.class, true);
             this.animationPause
                 .append("circle")
                 .attr("cx", 12)
@@ -2175,7 +2196,7 @@ module powerbi.visuals.samples {
                 .style("fill", "#777");
 
             /* ToStart */
-            this.animationToStart = this.svg.append('g').classed(PulseChartAnimator.AnimationToStart.class, true);
+            this.animationToStart = this.svg.append('g').classed(PulseAnimator.AnimationToStart.class, true);
             this.animationToStart
                 .append("circle")
                 .attr("cx", 12)
@@ -2189,7 +2210,7 @@ module powerbi.visuals.samples {
                 .style("fill", "#777");
 
             /* ToEnd */
-            this.animationToEnd = this.svg.append('g').classed(PulseChartAnimator.AnimationToEnd.class, true);
+            this.animationToEnd = this.svg.append('g').classed(PulseAnimator.AnimationToEnd.class, true);
             this.animationToEnd
                 .append("circle")
                 .attr("cx", 12)
@@ -2205,6 +2226,12 @@ module powerbi.visuals.samples {
 
         public render(): void {
             this.renderControls();
+        }
+
+        public renderChart(isAutoPlay: boolean): void {
+            if (isAutoPlay) {
+				this.play();
+			}
         }
 
         private renderControls(): void {
@@ -2236,19 +2263,19 @@ module powerbi.visuals.samples {
         }
 
         private play(): void {
-            if (this.animatorState === PulseChartAnimatorStates.Paused) {
-                this.animatorState = PulseChartAnimatorStates.Play;
+            if (this.animatorState === PulseAnimatorStates.Paused) {
+                this.animatorState = PulseAnimatorStates.Play;
                 this.chart.resumeAnimation();
-            } else if (this.animatorState === PulseChartAnimatorStates.Ready) {
-                this.animatorState = PulseChartAnimatorStates.Play;
+            } else if (this.animatorState === PulseAnimatorStates.Ready) {
+                this.animatorState = PulseAnimatorStates.Play;
                 this.chart.clearChart();
                 this.chart.renderChart(true);
             }
         }
 
-        private pause(): void {
-            if (this.animatorState === PulseChartAnimatorStates.Play) {
-                this.animatorState = PulseChartAnimatorStates.Paused;
+        public pause(): void {
+            if (this.animatorState === PulseAnimatorStates.Play) {
+                this.animatorState = PulseAnimatorStates.Paused;
                 this.chart.pauseAnimation();
             }
         }
@@ -2264,19 +2291,19 @@ module powerbi.visuals.samples {
         }
 
         private stop(): void {
-            this.animatorState = PulseChartAnimatorStates.Ready;
+            this.animatorState = PulseAnimatorStates.Ready;
             this.chart.stopAnimation();
         }
     }
 
-    export class PulseChartBehavior implements IInteractiveBehavior {
+    export class PulseBehavior implements IInteractiveBehavior {
         private behaviors: IInteractiveBehavior[];
 
         constructor(behaviors: IInteractiveBehavior[]) {
             this.behaviors = behaviors;
         }
 
-        public bindEvents(options: PulseChartBehaviorOptions, selectionHandler: ISelectionHandler): void {
+        public bindEvents(options: PulseBehaviorOptions, selectionHandler: ISelectionHandler): void {
             var behaviors = this.behaviors;
             for (var i: number = 0, ilen: number = behaviors.length; i < ilen; i++) {
                 behaviors[i].bindEvents(options.layerOptions[i], selectionHandler);
