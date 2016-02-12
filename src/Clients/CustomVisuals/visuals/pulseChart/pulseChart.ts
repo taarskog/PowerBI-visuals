@@ -56,6 +56,7 @@ module powerbi.visuals.samples {
         identity: SelectionId;
         width: number;
         xAxis?: D3.Svg.Axis;
+        widthOfGap: number;
     }
 
     export interface PulseChartTooltipData {
@@ -143,8 +144,8 @@ module powerbi.visuals.samples {
 
         categories: any[];
         legendData?: LegendData;
-        xScale?: IAxisProperties;
-        xAxisProperties?: IAxisProperties;
+
+        xScale?: D3.Scale.GenericScale<D3.Scale.TimeScale | D3.Scale.LinearScale>;
         yAxisProperties?: IAxisProperties;
         settings?: PulseChartSettings;
         formatter?: IValueFormatter;
@@ -470,13 +471,9 @@ module powerbi.visuals.samples {
             }
         };
 
-        //private static DefaultFontFamily = 'cursive';
-        //private static DefaultFontColor = 'rgb(165, 172, 175)';
-        //private static DefaultBackgroundColor = '#243C18';
         private static DefaultFormatString: string = "%H:mm";
-        //private static PaddingBetweenText = 15;
+
         private static MaxWidthOfLabel: number = 40;
-        private static ShiftCategoryIndex: number = 8;
 
         private svg: D3.Selection;
         private chart: D3.Selection;
@@ -589,8 +586,8 @@ module powerbi.visuals.samples {
         }
 
         public converter(dataView: DataView,
-                                isScalar: boolean,
-                                interactivityService?: IInteractivityService): PulseChartData {
+            isScalar: boolean,
+            interactivityService?: IInteractivityService): PulseChartData {
 
             if (!dataView.categorical || !dataView.categorical.categories) {
                 console.error("dataView.categorical.categories not found");
@@ -664,172 +661,50 @@ module powerbi.visuals.samples {
                 //console.log("grouped", grouped);
             }
 
-            var valueMeasureIndex = 0;//DataRoleHelper.getMeasureIndexOfRole(grouped, PulseChart.RoleNames.Value);
+            var valueMeasureIndex = 0;
 
             if (valueMeasureIndex < 0) {
                 console.error("valueMeasureIndex < 0");
-                //return;
             }
 
-            seriesLen = 1;//grouped.length;
-            //console.log("seriesLen", seriesLen);
+            seriesLen = 1;
 
             var seriesIndex: number = 0;
             var lastValue = null;
 
-            //for (var seriesIndex = 0; seriesIndex < seriesLen; seriesIndex++) {
+            var column = category;
+            var valuesMetadata = column.source;
+            var dataPoints: PulseChartDataPoint[] = [];
+            var groupedIdentity = grouped[seriesIndex];
 
-                var column = category;//categorical.values[seriesIndex];
-                var valuesMetadata = column.source;
-                var dataPoints: PulseChartDataPoint[] = [];
-                var groupedIdentity = grouped[seriesIndex];
+            var color = settings.series.fill;
+            var width: number = settings.series.width;
+            var seriesLabelSettings: LineChartDataLabelsSettings;
 
-               //console.log("groupedIdentity", groupedIdentity);
-               /*
-                var identity = hasDynamicSeries && groupedIdentity ?
-                    SelectionId.createWithIdAndMeasure(groupedIdentity.identity, column.source.queryName) :
-                    SelectionId.createWithMeasure(column.source.queryName);
-                    */
-
-                var color = settings.series.fill;
-                var width: number = settings.series.width;
-                var seriesLabelSettings: LineChartDataLabelsSettings;
-
-                if (!hasDynamicSeries) {
-                    var labelsSeriesGroup = grouped && grouped.length > 0 && grouped[0].values ? grouped[0].values[seriesIndex] : null;
-                    var labelObjects = (labelsSeriesGroup && labelsSeriesGroup.source && labelsSeriesGroup.source.objects) ? <DataLabelObject> labelsSeriesGroup.source.objects['labels'] : null;
-                    if (labelObjects) {
-                        //seriesLabelSettings = Prototype.inherit(defaultLabelSettings);
-                        //dataLabelUtils.updateLabelSettingsFromLabelsObject(labelObjects, seriesLabelSettings);
-                    }
+            if (!hasDynamicSeries) {
+                var labelsSeriesGroup = grouped && grouped.length > 0 && grouped[0].values ? grouped[0].values[seriesIndex] : null;
+                var labelObjects = (labelsSeriesGroup && labelsSeriesGroup.source && labelsSeriesGroup.source.objects) ? <DataLabelObject>labelsSeriesGroup.source.objects['labels'] : null;
+                if (labelObjects) {
+                    //seriesLabelSettings = Prototype.inherit(defaultLabelSettings);
+                    //dataLabelUtils.updateLabelSettingsFromLabelsObject(labelObjects, seriesLabelSettings);
                 }
+            }
 
-                var dataPointLabelSettings = (seriesLabelSettings) ? seriesLabelSettings : defaultLabelSettings;
+            var dataPointLabelSettings = (seriesLabelSettings) ? seriesLabelSettings : defaultLabelSettings;
 
-                for (var fakeCategoryIndex = 0, categoryIndex = 0, seriesCategoryIndex = 0, len = column.values.length; categoryIndex < len; fakeCategoryIndex++, categoryIndex++, seriesCategoryIndex++) {
-                    var categoryValue = categoryValues[categoryIndex];
-                    var value = AxisHelper.normalizeNonFiniteNumber(column.values[categoryIndex]);
+            for (var categoryIndex = 0, seriesCategoryIndex = 0, len = column.values.length; categoryIndex < len; categoryIndex++ , seriesCategoryIndex++) {
+                var categoryValue = categoryValues[categoryIndex];
+                var value = AxisHelper.normalizeNonFiniteNumber(column.values[categoryIndex]);
 
-                    var identity = SelectionIdBuilder.builder()
-                        .withCategory(column, categoryIndex)
-                        .createSelectionId();
+                var identity = SelectionIdBuilder.builder()
+                    .withCategory(column, categoryIndex)
+                    .createSelectionId();
 
-                    var key = identity.getKey();
-                    var isGap: boolean = PulseChart.isGap(categoryValue, lastValue, isDateTime);
+                var key = identity.getKey(),
+                    widthOfGap: number = PulseChart.getWidthOfGap(categoryValue, lastValue, isDateTime),
+                    isGap: boolean = PulseChart.isGap(widthOfGap, isDateTime);
 
-                    if (isGap &&  dataPoints.length > 0) {
-                        series.push({
-                            displayName: grouped[seriesIndex].name,
-                            key: key,
-                            lineIndex: seriesIndex,
-                            color: color,
-                            xCol: category.source,
-                            yCol: column.source,
-                            data: dataPoints,
-                            identity: identity,
-                            selected: false,
-                            labelSettings: seriesLabelSettings,
-                            width: width
-                        });
-                        seriesCategoryIndex = 0;
-                        fakeCategoryIndex += PulseChart.ShiftCategoryIndex;
-                        dataPoints = [];
-                    }
-
-                    lastValue = categoryValue;
-
-                    // When Scalar, skip null categories and null values so we draw connected lines and never draw isolated dots.
-                    if (isScalar && (categoryValue === null || value === null)) {
-                        continue;
-                    }
-
-                    var categorical: DataViewCategorical = dataView.categorical;
-                    var y0_group = groupedIdentity.values[valueMeasureIndex];
-                    //console.log('y0_group', y0_group);
-                    //var y1_group = groupedIdentity.values[valueMeasureIndex];
-
-                    var y0 = y0_group.values[categoryIndex];
-                    //var y1 = y1_group.values[categoryIndex];
-                    ////console.log('y0', y0);
-
-                    if (y0 === null) {
-                        y0_group = grouped[1].values[valueMeasureIndex];
-                        y0 = y0_group.values[categoryIndex];
-                    }
-
-                    //console.log('y0', y0);
-                    /*
-                    var formatterLarge = valueFormatter.create({ format: "0", value: 1e6 });
-                    var formatted_y0 = (y0 != null ? (String(y0).length >= 6 ? formatterLarge.format(y0) : y0) : y0);
-                    /*
-                    var seriesData: TooltipSeriesDataItem[] = [
-                        {
-                            value: formatted_y0,
-                            metadata: y0_group
-                        },
-                        {
-                            value: formatted_y1,
-                            metadata: y1_group
-                        }];
-
-
-                    if (typeof(categorical.categories) === 'undefined') {
-                        return;
-                    }
-
-                    var categoryColumns: DataViewCategoryColumn[] = [
-                        categorical.categories[0]
-                    ];
-                    var tooltipInfo: TooltipDataItem[] = null;*/
-                    var popupInfo: PulseChartTooltipData = null;
-
-                    if (eventTitleValues[categoryIndex] ||
-                        eventDescriptionValues[categoryIndex]) {
-                           //tooltipInfo = TooltipBuilder.createTooltipInfo(formatStringProp, null /*categorical*/, categoryValue, null, categoryColumns, seriesData, null);
-
-                         var time = categoryValue;
-
-                         if (isDateTime && categoryValue) {
-                            var formatterTime = valueFormatter.create({ format: "hh:mm"});
-                            time = formatterTime.format(categoryValue);
-                         }
-
-                         popupInfo = {
-                             time: time,
-                             title: eventTitleValues[categoryIndex],
-                             description: eventDescriptionValues[categoryIndex]
-                         };
-                        }
-
-                    var categoryValue = isDateTime && categoryValue ? categoryValue : categoryValue;
-                    var x = isScalar ? categoryValue : fakeCategoryIndex;
-
-                    var dataPoint: PulseChartDataPoint = {
-                        categoryValue: categoryValue,
-                        value: value,
-                        categoryIndex: fakeCategoryIndex,//categoryIndex,
-                        seriesIndex: seriesIndex,
-                        tooltipInfo: null,//tooltipInfo,
-                        popupInfo: popupInfo,
-                        selected: false,
-                        identity: identity,
-                        key: JSON.stringify({ ser: key, catIdx: categoryIndex }),
-                        labelFill: dataPointLabelSettings.labelColor,
-                        labelFormatString: labelFormatString || valuesMetadata.format,
-                        labelSettings: dataPointLabelSettings,
-                        x: x,
-                        y: y0,
-                        pointColor: color,
-                    };
-
-                    dataPoints.push(dataPoint);
-                }
-
-                if (interactivityService) {
-                    interactivityService.applySelectionStateToData(dataPoints);
-                }
-
-                if (dataPoints.length > 0) {
+                if (isGap && dataPoints.length > 0) {
                     series.push({
                         displayName: grouped[seriesIndex].name,
                         key: key,
@@ -841,10 +716,97 @@ module powerbi.visuals.samples {
                         identity: identity,
                         selected: false,
                         labelSettings: seriesLabelSettings,
-                        width: width
+                        width: width,
+                        widthOfGap: widthOfGap
                     });
+
+                    seriesCategoryIndex = 0;
+                    dataPoints = [];
                 }
-           // }
+
+                lastValue = categoryValue;
+
+                // When Scalar, skip null categories and null values so we draw connected lines and never draw isolated dots.
+                if (isScalar && (categoryValue === null || value === null)) {
+                    continue;
+                }
+
+                var categorical: DataViewCategorical = dataView.categorical;
+                var y0_group = groupedIdentity.values[valueMeasureIndex];
+                //console.log('y0_group', y0_group);
+                //var y1_group = groupedIdentity.values[valueMeasureIndex];
+
+                var y0 = y0_group.values[categoryIndex];
+                //var y1 = y1_group.values[categoryIndex];
+                ////console.log('y0', y0);
+
+                if (y0 === null) {
+                    y0_group = grouped[1].values[valueMeasureIndex];
+                    y0 = y0_group.values[categoryIndex];
+                }
+
+                var popupInfo: PulseChartTooltipData = null;
+
+                if (eventTitleValues[categoryIndex] ||
+                    eventDescriptionValues[categoryIndex]) {
+                    var time = categoryValue;
+
+                    if (isDateTime && categoryValue) {
+                        var formatterTime = valueFormatter.create({ format: "hh:mm" });
+                        time = formatterTime.format(categoryValue);
+                    }
+
+                    popupInfo = {
+                        time: time,
+                        title: eventTitleValues[categoryIndex],
+                        description: eventDescriptionValues[categoryIndex]
+                    };
+                }
+
+                var categoryValue = isDateTime && categoryValue ? categoryValue : categoryValue;
+
+                var dataPoint: PulseChartDataPoint = {
+                    categoryValue: categoryValue,
+                    value: value,
+                    categoryIndex: categoryIndex,
+                    seriesIndex: seriesIndex,
+                    tooltipInfo: null,//tooltipInfo,
+                    popupInfo: popupInfo,
+                    selected: false,
+                    identity: identity,
+                    key: JSON.stringify({ ser: key, catIdx: categoryIndex }),
+                    labelFill: dataPointLabelSettings.labelColor,
+                    labelFormatString: labelFormatString || valuesMetadata.format,
+                    labelSettings: dataPointLabelSettings,
+                    x: categoryValue,
+                    y: y0,
+                    pointColor: color,
+                };
+
+                dataPoints.push(dataPoint);
+            }
+
+            if (interactivityService) {
+                interactivityService.applySelectionStateToData(dataPoints);
+            }
+
+            if (dataPoints.length > 0) {
+                series.push({
+                    displayName: grouped[seriesIndex].name,
+                    key: key,
+                    lineIndex: seriesIndex,
+                    color: color,
+                    xCol: category.source,
+                    yCol: column.source,
+                    data: dataPoints,
+                    identity: identity,
+                    selected: false,
+                    labelSettings: seriesLabelSettings,
+                    width: width,
+                    widthOfGap: 0
+                });
+            }
+            // }
 
             xAxisCardProperties = CartesianHelper.getCategoryAxisProperties(dataView.metadata);
             var valueAxisProperties = CartesianHelper.getValueAxisProperties(dataView.metadata);
@@ -877,19 +839,31 @@ module powerbi.visuals.samples {
             };
         }
 
-        private static isGap(newValue, oldValue, isDate) {
-            if (!newValue ||
-                !oldValue) {
-                    return false;
-                }
-            if (!isDate) {
-                return ((newValue - oldValue) > 1);
-            } else {
-                var oldDate = oldValue.getTime();
-                var newDate = newValue.getTime();
+        private static isGap(widthOfGap: number, isDate: boolean): boolean {
+            // if (!isDate) {
+            //     return widthOfGap > 1;
+            // } else {
+                return widthOfGap > PulseChart.MinInterval;
+            // }
+        }
 
-                return ((newDate - oldDate) > PulseChart.MinInterval);
+        private static getWidthOfGap(newValue: Date | number, oldValue: Date | number, isDate): number {
+            if (!newValue || !oldValue) {
+                return 0;
             }
+
+            var firstValue: number,
+                secondValue: number;
+
+            if (isDate) {
+                firstValue = (<Date> oldValue).getTime();
+                secondValue = (<Date> newValue).getTime();
+            } else {
+                firstValue = <number> oldValue;
+                secondValue = <number> newValue;
+            }
+
+            return secondValue - firstValue;
         }
 
         public init(options: VisualInitOptions): void {
@@ -941,15 +915,6 @@ module powerbi.visuals.samples {
             this.calculateAxesProperties();
             this.render(true);
         }
-        /*
-        private isSizeAvailable(viewport: IViewport): boolean {
-            if ((viewport.height < PulseChart.DefaultViewport.height) ||
-                (viewport.width < PulseChart.DefaultViewport.width)) {
-                    return false;
-            }
-
-            return true;
-        }*/
 
         private setSize(viewport: IViewport): void {
             var height: number,
@@ -984,12 +949,13 @@ module powerbi.visuals.samples {
         public calculateAxesProperties() {
             var xAxes: D3.Svg.Axis[];
 
-            this.data.xAxisProperties = this.getXAxisProperties();
+            this.data.xScale = this.getXAxisScale();
             this.data.yAxisProperties = this.getYAxisProperties();
 
             xAxes = this.createAxisX(
+                this.data.isScalar,
                 this.data.series,
-                <D3.Scale.LinearScale> this.data.xAxisProperties.scale,
+                <D3.Scale.LinearScale> this.data.xScale,
                 PulseChart.DefaultFormatString,
                 this.data.settings.xAxis.step,
                 this.data.settings.xAxis.show);
@@ -999,105 +965,51 @@ module powerbi.visuals.samples {
             });
         }
 
-        private static isOrdinal(type: ValueType): boolean {
-            return !!(type && (type.text || type.bool));
+        private getXAxisScale(): D3.Scale.GenericScale<D3.Scale.TimeScale | D3.Scale.LinearScale> {
+            var data: PulseChartData = this.data;
+
+            return this.createScale(
+                data.isScalar,
+                [data.categories[0], data.categories[data.categories.length - 1]],
+                0,
+                this.viewport.width);
         }
 
-        private static createOrdinalDomain(data: PulseChartSeries[]): number[] {
-            if (_.isEmpty(data)) {
-                return [];
+        private createScale(isScalar: boolean, domain: number[] | Date[], minX: number, maxX: number): D3.Scale.GenericScale<D3.Scale.LinearScale | D3.Scale.TimeScale> {
+            var scale: D3.Scale.GenericScale<D3.Scale.LinearScale | D3.Scale.TimeScale>;
+
+            if (isScalar) {
+                scale = d3.scale.linear();
+            } else {
+                scale = d3.time.scale();
             }
 
-            var xDomain: number[] = [];
-            for (var i: number = 0; i < data.length; i++) {
-                xDomain = xDomain.concat(data[i].data.map(d => d.categoryIndex));
-
-                if (i < data.length - 1) {
-                    xDomain = xDomain.concat(
-                        PulseChart.getNumberSequence(xDomain[xDomain.length - 1],
-                        PulseChart.ShiftCategoryIndex));
-                }
-            }
-
-            return xDomain;
+            return scale
+                .domain(domain)
+                .rangeRound([minX, maxX]);
         }
 
-        private static getNumberSequence(minNumber: number, countOfNumbers: number): number[] {
-            var numbers: number[] = [];
+        private createAxisX(
+            isScalar: boolean,
+            series: PulseChartSeries[],
+            originalScale: D3.Scale.GenericScale<D3.Scale.TimeScale | D3.Scale.LinearScale>,
+            formatString: string,
+            step: number = 30,
+            show: boolean = true): D3.Svg.Axis[] {
 
-            for (var i = minNumber; i < minNumber + countOfNumbers; i++) {
-                numbers.push(i);
-            }
-
-            return numbers;
-        }
-
-        private static createDomain(data: PulseChartSeries[], axisType: ValueType, isScalar: boolean, forcedScalarDomain: any[]): number[]{
-            if (isScalar && !PulseChart.isOrdinal(axisType)) {
-                var userMin, userMax;
-                if (forcedScalarDomain && forcedScalarDomain.length === 2) {
-                    userMin = forcedScalarDomain[0];
-                    userMax = forcedScalarDomain[1];
-                }
-
-               return [userMin, userMax];
-            }
-
-            return PulseChart.createOrdinalDomain(data);
-        }
-
-        private getXAxisProperties(): IAxisProperties {
-            var data: PulseChartData = this.data,
-                categoryThickness: number = 0,
-                categoryDataType: ValueType = AxisHelper.getCategoryValueType(data.categoryMetadata),
-                xDomain: number[] = PulseChart.createDomain(data.series, categoryDataType, data.isScalar, [data.categories[0], data.categories[data.categories.length - 1]]),
-                xMetaDataColumn: DataViewMetadataColumn = data.categoryMetadata,
-                isScalar: boolean = data.isScalar,
-                formatString: string = valueFormatter.getFormatString(xMetaDataColumn, PulseChart.Properties["general"]["formatString"]);
-
-            var dw = new PulseDataWrapper(data, isScalar);
-
-            var properties = AxisHelper.createAxis({
-                pixelSpan: this.viewport.width,
-                dataDomain: xDomain,
-                metaDataColumn: xMetaDataColumn,
-                formatString: formatString,
-                outerPadding: 0,
-                isScalar: isScalar,
-                isVertical: false,
-                forcedTickCount: 0,
-                useTickIntervalForDisplayUnits: true,
-                getValueFn: (index, type) => {
-                    var domainIndex = xDomain.indexOf(index);
-                    var value = dw.lookupXValue(domainIndex, type);
-                    return value;
-                },//data.categories[index],
-                categoryThickness: categoryThickness,
-                isCategoryAxis: false,
-                scaleType: this.scaleType,
-                axisDisplayUnits: undefined,
-                axisPrecision: undefined
-            });
-
-            return properties;
-        }
-
-        private createAxisX(series: PulseChartSeries[], originalScale: D3.Scale.LinearScale, formatString: string, step: number = 30, show: boolean = true): D3.Svg.Axis[] {
             var xAxisProperties: PulseChartXAxisProperties[] = [];
 
             xAxisProperties = series.map((seriesElement: PulseChartSeries) => {
                 var formatter: IValueFormatter,
-                    timeScale: D3.Scale.TimeScale,
+                    scale: D3.Scale.GenericScale<D3.Scale.TimeScale | D3.Scale.LinearScale>,
                     dataPoints: PulseChartDataPoint[] = seriesElement.data,
                     minDate: Date = dataPoints[0].categoryValue,
                     maxDate: Date = dataPoints[dataPoints.length - 1].categoryValue,
-                    minX: number = originalScale(dataPoints[0].categoryIndex),
-                    maxX: number = originalScale(dataPoints[dataPoints.length - 1].categoryIndex),
+                    minX: number = originalScale(dataPoints[0].categoryValue),
+                    maxX: number = originalScale(dataPoints[dataPoints.length - 1].categoryValue),
                     dates: Date[] = [];
 
-                timeScale = d3.time.scale()
-                    .domain([minDate, maxDate])
-                    .rangeRound([minX, maxX]);
+                scale = this.createScale(isScalar, [minDate, maxDate], minX, maxX);
 
                 formatter = valueFormatter.create({
                     format: formatString,
@@ -1111,7 +1023,7 @@ module powerbi.visuals.samples {
 
                 return <PulseChartXAxisProperties> {
                     dates: dates,
-                    scale: timeScale,
+                    scale: scale,
                     formatter: formatter
                 };
             });
@@ -1239,13 +1151,16 @@ module powerbi.visuals.samples {
                 return;
             }
 
-            //var isScalar: boolean = data.isScalar;
-            var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.xAxisProperties.scale;
-            var yScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.yAxisProperties.scale;
+            var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.xScale,
+                yScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.yAxisProperties.scale;
 
             this.lineX = d3.svg.line()
-                .x((d: PulseChartDataPoint) => xScale(d.x))
-                .y((d: PulseChartDataPoint) => yScale(d.y));
+                .x((d: PulseChartDataPoint) => {
+                    return xScale(d.categoryValue);
+                })
+                .y((d: PulseChartDataPoint) => {
+                    return yScale(d.y);
+                });
 
             this.renderGaps(data, duration);
             this.renderAxes(data, duration);
@@ -1359,6 +1274,7 @@ module powerbi.visuals.samples {
                 this.drawDots(data);
                 this.drawTooltips(data);
             }
+
             selection
                 .exit()
                 .remove();
@@ -1392,14 +1308,16 @@ module powerbi.visuals.samples {
                 if (seriesCount) {
                     return index < seriesCount;
                 }
+
                 return true;
-                }).selectAll(node.selector).data(d => [d]);
+            }).selectAll(node.selector).data(d => [d]);
 
-            var line: D3.EnterSelection = selection.enter();
-
-            line
+            selection
+                .enter()
                 .append('path')
-                .classed(node.class, true)
+                .classed(node.class, true);
+
+            selection
                 .style({
                     'fill': "none",
                     'stroke': (d: PulseChartSeries) => d.color,
@@ -1445,8 +1363,8 @@ module powerbi.visuals.samples {
              var start = this.animationIndex;
              var stop: number = this.findNextDataPoint(data, start);
 
-             var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>this.data.xAxisProperties.scale;
-             var yScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>this.data.yAxisProperties.scale;
+             var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>this.data.xScale,
+                yScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>this.data.yAxisProperties.scale;
 
              console.log('start:', start, 'stop:', stop);
 
@@ -1540,10 +1458,6 @@ module powerbi.visuals.samples {
                 .duration(durationCallback)
                 .ease("linear")
                 .attrTween('d', (d: PulseChartSeries) => this.getInterpolation(d.data))
-                /*.call(function(d) {
-                    console.log(arguments);
-                    return d;
-                })*/
                 .each("end", () => {
                     console.log('end transition');
                 });
@@ -1558,21 +1472,19 @@ module powerbi.visuals.samples {
 
             console.log('handleSelection', d.identity);
 
-            sm.select(d.identity)
-                .then((selectionIds: SelectionId[]) => {
-
-                   this.setSelection(selectionIds);
-                });
+            sm.select(d.identity).then((selectionIds: SelectionId[]) => {
+                this.setSelection(selectionIds);
+            });
         }
 
         private nextLineWithAnimation() {
             setTimeout(() => {
                 this.drawLineWithAnimation();
-                }, 5000);
+            }, 5000);
         }
 
         private drawDots(data: PulseChartData): void {
-            var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.xAxisProperties.scale,
+            var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.xScale,
                 yScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.yAxisProperties.scale,
                 node: ClassAndSelector = PulseChart.Dot,
                 rootSelection: D3.UpdateSelection = this.rootSelection,
@@ -1589,7 +1501,7 @@ module powerbi.visuals.samples {
                 .classed(node.class, true);
 
             selection
-                .attr("cx", (d: PulseChartDataPoint) => xScale(d.x))
+                .attr("cx", (d: PulseChartDataPoint) => xScale(d.categoryValue))
                 .attr("cy", (d: PulseChartDataPoint) => yScale(d.y))
                 .attr("r", 5)
                 .style("fill", this.data.settings.popup.color)
@@ -1618,9 +1530,9 @@ module powerbi.visuals.samples {
                 gapsSelection: D3.UpdateSelection,
                 gapsEnterSelection: D3.Selection,
                 gapNodeSelection: D3.UpdateSelection,
-                shiftIndex: number = PulseChart.ShiftCategoryIndex / 2,
                 series: PulseChartSeries[] = data.series,
-                xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.xAxisProperties.scale;
+                isScalar: boolean = data.isScalar,
+                xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.xScale;
 
             gaps = [{
                 left: -4.5,
@@ -1643,9 +1555,15 @@ module powerbi.visuals.samples {
 
             gapsSelection
                 .attr("transform", (seriesElement: PulseChartSeries, index: number) => {
-                    var x: number;
+                    var x: number,
+                        middleOfGap: number = seriesElement.widthOfGap / 2,
+                        categoryValue: number | Date = seriesElement.data[seriesElement.data.length - 1].categoryValue;
 
-                    x = xScale(seriesElement.data[seriesElement.data.length - 1].categoryIndex + shiftIndex);
+                    if (isScalar) {
+                        x = xScale(middleOfGap + <number>categoryValue);
+                    } else {
+                        x = xScale(new Date(middleOfGap + ((<Date>categoryValue).getTime())));
+                    }
 
                     return SVGUtil.translate(x, 0);
                 });
@@ -1708,7 +1626,7 @@ module powerbi.visuals.samples {
         }
 
         private drawTooltips(data: PulseChartData, selectionIds?: SelectionId[]) {
-            var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.xAxisProperties.scale,
+            var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.xScale,
                 yScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>data.yAxisProperties.scale,
                 node: ClassAndSelector = PulseChart.Tooltip;
 
@@ -2290,10 +2208,6 @@ module powerbi.visuals.samples {
         }
 
         private renderControls(): void {
-            var line: D3.Svg.Line = d3.svg.line()
-                .x(d => d.x)
-                .y(d => d.y);
-
             this.animationPlay
                 .attr('transform', SVGUtil.translate(0, 0))
                 .on("click", () => {
