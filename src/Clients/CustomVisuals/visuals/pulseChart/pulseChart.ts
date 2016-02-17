@@ -923,7 +923,7 @@ module powerbi.visuals.samples {
                 return false;
             }
 
-            if(data.categories.some(x => !(x instanceof Date))) {
+            if(data.categories.some(x => !(x instanceof Date || $.isNumeric(x)))) {
                 return false;
             }
 
