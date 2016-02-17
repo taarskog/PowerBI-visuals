@@ -1177,7 +1177,12 @@ module powerbi.visuals.samples {
 
             this.renderGaps(data, duration);
             this.renderAxes(data, duration);
-            this.animationHandler.renderChart(this.isAutoPlay());
+
+			if (this.isAutoPlay()) {
+            	this.animationHandler.renderChart(true);
+			} else {
+				this.renderChart(false);
+			}
 
             return result;
         }
