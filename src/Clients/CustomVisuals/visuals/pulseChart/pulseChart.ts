@@ -585,14 +585,19 @@ module powerbi.visuals.samples {
           return -1;
         }
 
-        public converter(dataView: DataView,
-            isScalar: boolean,
-            interactivityService?: IInteractivityService): PulseChartData {
-
-            if (!dataView.categorical || !dataView.categorical.categories) {
-                console.error("dataView.categorical.categories not found");
-                return null;
+        public converter(dataView: DataView, interactivityService?: IInteractivityService): PulseChartData {
+            if (!dataView.categorical
+                || !dataView.categorical.values 
+                || !dataView.categorical.values[0]
+                || !dataView.categorical.values[0].values
+                || !dataView.categorical.categories) {
+                    return null;
             }
+
+            var isScalar: boolean = CartesianChart.getIsScalar(
+                dataView.metadata ? dataView.metadata.objects : null,
+                PulseChart.Properties["general"]["formatString"],
+                ValueType.fromDescriptor({ text: true }));
 
             var categories: DataViewCategoryColumn[] = dataView.categorical.categories;
             var settings: PulseChartSettings = this.parseSettings(dataView);
@@ -867,6 +872,8 @@ module powerbi.visuals.samples {
         }
 
         public init(options: VisualInitOptions): void {
+            (<any>powerbi.formattingService).initialize();//Fixes the framework bug: "Cannot read property 'getFormatString' of undefined".
+
             this.selectionManager = new SelectionManager({ hostServices: options.host });
             var svg: D3.Selection = this.svg = d3.select(options.element.get(0))
                 .append('svg')
@@ -893,32 +900,34 @@ module powerbi.visuals.samples {
 				this.animationHandler.pause();
 			}
 
-            if (!options ||
-                !options.dataViews ||
-                !options.dataViews[0] ||
-                !options.dataViews[0].categorical ||
-                !options.dataViews[0].categorical.values ||
-                !options.dataViews[0].categorical.values[0] ||
-                !options.dataViews[0].categorical.values[0].values) {
-                    this.clear();
-                    return;
+            if (!options || !options.dataViews || !options.dataViews[0]) {
+                this.clear();
+                return;
             }
 
-            var dataView: DataView = options.dataViews[0],
-                categoryType: ValueType = ValueType.fromDescriptor({ text: true }),
-                axisType = PulseChart.Properties["general"]["formatString"],
-                isScalar: boolean =  CartesianChart.getIsScalar(dataView.metadata ? dataView.metadata.objects : null, axisType, categoryType);
+            var dataView: DataView = options.dataViews[0];
 
             this.setSize(options.viewport);
-            this.data = this.converter(dataView, isScalar);
-
-            if (!this.data) {
+            this.data = this.converter(dataView);
+            if (!this.validateData(this.data)) {
                 this.clear();
                 return;
             }
 
             this.calculateAxesProperties();
             this.render(true);
+        }
+
+        private validateData(data: PulseChartData): boolean {
+            if (!data) {
+                return false;
+            }
+
+            if(data.categories.some(x => !(x instanceof Date))) {
+                return false;
+            }
+
+            return true;
         }
 
         private setSize(viewport: IViewport): void {
@@ -1383,10 +1392,10 @@ module powerbi.visuals.samples {
              var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>this.data.xScale,
                 yScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>this.data.yAxisProperties.scale;
 
-             console.log('start:', start, 'stop:', stop);
+             //console.log('start:', start, 'stop:', stop);
 
              if (start >= stop) {
-                 console.log('stop animation');
+                 //console.log('stop animation');
                  this.animationSeries++;
                  if (this.animationSeries >= this.data.series.length) {
                      this.animationSeries = 0;
@@ -1466,7 +1475,7 @@ module powerbi.visuals.samples {
                 }
 
                 duration = speed * (stop - start);
-                console.log('duration:', duration, 'points:', stop - start);
+                //console.log('duration:', duration, 'points:', stop - start);
                 return duration;
             };
 
@@ -1476,7 +1485,7 @@ module powerbi.visuals.samples {
                 .ease("linear")
                 .attrTween('d', (d: PulseChartSeries) => this.getInterpolation(d.data, start))
                 .each("end", () => {
-                    console.log('end transition');
+                    //console.log('end transition');
                 });
         }
 
@@ -1487,7 +1496,7 @@ module powerbi.visuals.samples {
             }
             var sm: SelectionManager = this.selectionManager;
 
-            console.log('handleSelection', d.identity);
+            //console.log('handleSelection', d.identity);
 
             sm.select(d.identity).then((selectionIds: SelectionId[]) => {
                 this.setSelection(selectionIds);
