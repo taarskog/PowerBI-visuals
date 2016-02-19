@@ -187,27 +187,27 @@ module powerbi.visuals.samples {
                 {
                     displayName: PulseChart.RoleNames.Timestamp,
                     name: PulseChart.RoleNames.Timestamp,
-                    kind: powerbi.VisualDataRoleKind.Grouping,
+                    kind: powerbi.VisualDataRoleKind.Grouping
                 },
                 {
                     displayName: PulseChart.RoleNames.Value,
                     name: PulseChart.RoleNames.Value,
-                    kind: powerbi.VisualDataRoleKind.Measure,
+                    kind: powerbi.VisualDataRoleKind.Measure
                 },
                 {
                     displayName: PulseChart.RoleNames.Category,
                     name: PulseChart.RoleNames.Category,
-                    kind: powerbi.VisualDataRoleKind.Grouping,
+                    kind: powerbi.VisualDataRoleKind.Grouping
                 },
                 {
                     displayName: PulseChart.RoleNames.EventTitle,
                     name: PulseChart.RoleNames.EventTitle,
-                    kind: powerbi.VisualDataRoleKind.GroupingOrMeasure,
+                    kind: powerbi.VisualDataRoleKind.GroupingOrMeasure
                 },
                 {
                     displayName: PulseChart.RoleNames.EventDescription,
                     name: PulseChart.RoleNames.EventDescription,
-                    kind: powerbi.VisualDataRoleKind.GroupingOrMeasure,
+                    kind: powerbi.VisualDataRoleKind.GroupingOrMeasure
                 },
             ],
             dataViewMappings: [{
@@ -217,26 +217,27 @@ module powerbi.visuals.samples {
                         'Value': { max: 0 },
                         'Category': { max: 0 },
                         'EventTitle': { max: 0 },
-                        'EventDescription': { max: 0 },
+                        'EventDescription': { max: 0 }
                     },
                     {
                         'Timestamp': { min: 1, max: 1 },
                         'Value': { min: 1, max: 1 },
                         'Category': { max: 0 },
                         'EventTitle': { max: 0 },
-                        'EventDescription': { max: 0 },
+                        'EventDescription': { max: 0 }
                     },
                     {
                         'Timestamp': { min: 1, max: 1 },
                         'Value': { min: 1, max: 1 },
                         'Category': { max: 1 },
                         'EventTitle': { max: 1 },
-                        'EventDescription': { max: 1 },
+                        'EventDescription': { max: 1 }
                     }
                 ],
                 categorical: {
                     categories: {
-                        for: { in: PulseChart.RoleNames.Timestamp }
+                        for: { in: PulseChart.RoleNames.Timestamp },
+                        dataReductionAlgorithm: { top: { count: 10000 } }
                     },
                     values: {
                         group: {
@@ -245,7 +246,8 @@ module powerbi.visuals.samples {
                                 { bind: { to: PulseChart.RoleNames.Value } },
                                 { bind: { to: PulseChart.RoleNames.EventTitle } },
                                 { bind: { to: PulseChart.RoleNames.EventDescription } }
-                            ]
+                            ],
+                            dataReductionAlgorithm: { top: {} }
                         },
                     },
                 },
@@ -358,6 +360,9 @@ module powerbi.visuals.samples {
                         },
                     }
                 },
+            },
+            sorting: {
+                default: {},
             }
         };
 
