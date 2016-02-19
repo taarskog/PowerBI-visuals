@@ -102,7 +102,7 @@ module powerbi.visuals.sampleDataViews {
                     {
                         displayName: 'Timestamp',
                         queryName: 'Timestamp',
-                        type: powerbi.ValueType.fromDescriptor({ text: true }),
+                        type: powerbi.ValueType.fromDescriptor({ dateTime: true }),
                         roles: {
                             Timestamp: true
                         }
@@ -142,7 +142,13 @@ module powerbi.visuals.sampleDataViews {
                             EventDescription: true
                         }
                     },
-                ]
+                ],
+                objects: {
+                    xAxis: {
+                        show: true,
+                        step: 5
+                    }
+                }
             };
 
             let columns: DataViewValueColumn[] = [
