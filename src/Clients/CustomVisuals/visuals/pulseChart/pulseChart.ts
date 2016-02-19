@@ -530,7 +530,7 @@ module powerbi.visuals.samples {
 
         private static MinInterval = 60 * 1000;
 
-        private lastSelectedPoint: number = 0;
+        private lastSelectedPoint: SelectionId;
 
         private scaleType: string = AxisScale.linear;
 
@@ -1178,6 +1178,7 @@ module powerbi.visuals.samples {
             var duration = AnimatorCommon.GetAnimationDuration(this.animator, suppressAnimations);
             var result: CartesianVisualRenderResult;
             var data = this.data;
+            this.lastSelectedPoint = null;
 
             if (!data) {
                 this.clear();
@@ -1397,31 +1398,16 @@ module powerbi.visuals.samples {
 
         public playAnimation() {
             var selection: D3.UpdateSelection = this.animationSelection;
-            var duration: number = 1000;
-            var minSpeed: number = 500;
+            var duration: number = 300;
             var start: number = this.animationHandler.getCurrentIndex();
 
-            var sm: SelectionManager = this.selectionManager;
-            sm.clear();
-
-            var durationCallback = (d: PulseChartSeries): number => {
-                return 10000;//duration;
-                //var stop: number = this.findNextDataPoint(d.data, start);
-                var speed: number = duration / d.data.length;
-                if (speed < minSpeed) {
-                    speed = minSpeed;
-                }
-
-                duration = speed * (d.data.length - start);
-                //console.log('duration:', duration, 'points:', stop - start);
-                return duration;
-            };
+            this.clearSelection();
 
             selection
                 .transition()
-                .duration(durationCallback)
+                .duration(duration)
                 .ease("linear")
-                .attrTween('d', (d: PulseChartSeries) => this.getInterpolation(d.data, start, d.data.length))
+                .attrTween('d', (d: PulseChartSeries) => this.getInterpolation(d.data, start))
                 .each("end", () => {
                     //console.log('end transition');
                 });
@@ -1455,6 +1441,12 @@ module powerbi.visuals.samples {
             if (start >= d.length) {
                  return start;
             }
+
+            if (start < (d.length - 1)) {
+                return start + 1;
+            }
+            return start;
+
             for (var i: number = start, iLen = d.length; i < iLen; i++) {
                 if (d[i] && d[i].popupInfo) {
                     return i;
@@ -1471,33 +1463,23 @@ module powerbi.visuals.samples {
             this.animationDot.attr('display', 'none');
         }
 
-        private getInterpolation(data: PulseChartDataPoint[], start: number, stop: number) {
-
-             //var stop: number = this.findNextDataPoint(data, start);
-             console.log("start: ", start, "stop: ", stop);
+        private getInterpolation(data: PulseChartDataPoint[], start: number) {
 
              var xScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>this.data.xScale,
                 yScale: D3.Scale.LinearScale = <D3.Scale.LinearScale>this.data.yAxisProperties.scale;
 
-             if (start >= stop) {
+             var stop: number = start + 1;
+
+             if (stop >= data.length) {
 				 this.animationHandler.playNext();
                  return;
              }
 
               this.showDot();
 
-			  var step: number = (stop - start) / 100;
-			  var range: number[] = d3.range(start, stop + 1, step);
-			 // range = [start, stop + 1];
-
               var interpolate = d3.scale.linear()
-
-                  .domain([0, 1])
-                 //  .domain(d3.range(0, 1, 0.01))
-				 // .range(range);
-                 .range([start, stop + 1]);
-
-		      interpolate.ticks(100);
+                 .domain([0, 1])
+                 .range([start, stop]);
 
               var lineFunction: D3.Svg.Line = d3.svg.line()
                   .x(d => d.x)
@@ -1516,7 +1498,7 @@ module powerbi.visuals.samples {
 
 				  this.animationHandler.setCurrentIndex(index);
 
-                  console.log('t:', t, 'index', index, 'flooredX', flooredX);
+                  ///console.log('t:', t, 'index', index, 'flooredX', flooredX);
 
                   if (flooredX > 0 && flooredX < data.length) {
                         var weight = interpolate(t) - flooredX;
@@ -1530,19 +1512,10 @@ module powerbi.visuals.samples {
                         this.animationDot
                             .attr("cx", x)
                             .attr("cy", y);
-
-                        if ((flooredX != this.lastSelectedPoint) &&
-                            data[flooredX] &&
-                            data[flooredX].popupInfo) {
-                              console.log('this.lastSelectedPoint', this.lastSelectedPoint, 'flooredX', flooredX);
-                              this.lastSelectedPoint = flooredX;
-                              //console.log('selection', flooredX, data[flooredX].popupInfo);
-                              this.handleSelection(data[flooredX]);
-                          }
                   }
 
                   if (t >= 1) {
-                    this.nextLineWithAnimation();
+                     this.handleSelection(data[flooredX]);
                   }
 
                   return lineFunction(interpolatedLine);
@@ -1561,6 +1534,7 @@ module powerbi.visuals.samples {
             this.clearSelection();
 
             if (!d || !d.popupInfo) {
+                this.animationHandler.play();
                 return;
             }
 
@@ -1587,9 +1561,9 @@ module powerbi.visuals.samples {
 		}
 
         private nextLineWithAnimation() {
-			this.animationHandler.pause();
+			//this.animationHandler.pause();
 
-            this.animationHandler.play();
+            //this.animationHandler.play();
             /*
             setTimeout(() => {
                 this.animationHandler.play();
