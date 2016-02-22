@@ -27,11 +27,13 @@
 @import (reference) "../../../styles/styles.less";
 
 .pulseChart {
+    @fontSize: 11px;
+
     font-family: @regularFontFamily;
 
     .axisGraphicsContext {
         font-family: @regularFontFamily;
-        font-size: 11px;
+        font-size: @fontSize;
     }
 
     .axis path,
@@ -48,7 +50,7 @@
     }
 
     .x {
-        font-size: 11px;
+        font-size: @fontSize;
 
         line {
             display: none;
@@ -61,6 +63,10 @@
         .axisBox {
             fill: dimgrey;
         }
+    }
+
+    .y {
+        font-size: @fontSize;
     }
 
     .gaps .gap {
