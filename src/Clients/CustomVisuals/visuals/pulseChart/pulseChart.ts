@@ -73,6 +73,7 @@ module powerbi.visuals.samples {
     }
 
     export interface PulseChartDataPoint extends LineChartDataPoint, PulseChartPointXY {
+        groupIndex: number;
         popupInfo?: PulseChartTooltipData;
     }
 
@@ -1624,15 +1625,15 @@ module powerbi.visuals.samples {
             var interpolatedLine = data.slice(0, start + 1).map((d: PulseChartDataPoint): PulseChartPointXY => {
                     return {
                         x: xScale(d.x),
-                        y: yScale(d.y)
+                        y: yScales[d.groupIndex](d.y)
                     };
             });
 
             var x0: number = xScale(data[start].x);
             var x1: number = xScale(data[stop].x);
 
-            var y0: number = yScale(data[start].y);
-            var y1: number = yScale(data[stop].y);
+            var y0: number = yScales[data[start].groupIndex](data[start].y);
+            var y1: number = yScales[data[stop].groupIndex](data[stop].y);
 
             var interpolateIndex: D3.Scale.LinearScale = d3.scale.linear()
                 .domain([0, 1])
@@ -1669,7 +1670,7 @@ module powerbi.visuals.samples {
                         .attr("cx", x)
                         .attr("cy", y);
 
-                    console.log("start y: ", yScale( data[start].y), "stop y: ", yScale(data[stop].y), "y:", y);
+                    console.log("start y: ", yScales[d.groupIndex]( data[start].y), "stop y: ", yScales[d.groupIndex](data[stop].y), "y:", y);
                 }
                 */
 
@@ -1769,7 +1770,7 @@ module powerbi.visuals.samples {
 
             selection
                 .attr("cx", (d: PulseChartDataPoint) => xScale(d.categoryValue))
-                .attr("cy", (d: PulseChartDataPoint) => yScale(d.y))
+                .attr("cy", (d: PulseChartDataPoint) => yScales[d.groupIndex](d.y))
                 .attr("r", this.data.settings.popup.dotSize)
                 .style("fill", this.data.settings.popup.color)
                 .style("cursor", "pointer")
