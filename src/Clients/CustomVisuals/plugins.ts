@@ -25,122 +25,128 @@
  */
 
 module powerbi.visuals.plugins {
-    export let sunburst: IVisualPlugin = {
-        name: 'sunburst',
-        watermarkKey: 'defaultWatermark',
-        capabilities: samples.Sunburst.capabilities,
-        create: () => new samples.Sunburst()
-    };
+	export let sunburst: IVisualPlugin = {
+		name: 'sunburst',
+		watermarkKey: 'defaultWatermark',
+		capabilities: samples.Sunburst.capabilities,
+		create: () => new samples.Sunburst()
+	};
 
-    export let consoleWriter: IVisualPlugin = {
-        name: 'consoleWriter',
-        capabilities: samples.consoleWriterCapabilities,
-        create: () => new samples.ConsoleWriter()
-    };
+	export let consoleWriter: IVisualPlugin = {
+		name: 'consoleWriter',
+		capabilities: samples.consoleWriterCapabilities,
+		create: () => new samples.ConsoleWriter()
+	};
 
-    export let helloIVisual: IVisualPlugin = {
-        name: 'helloIVisual',
-        capabilities: samples.HelloIVisual.capabilities,
-        create: () => new samples.HelloIVisual()
-    };
+	export let helloIVisual: IVisualPlugin = {
+		name: 'helloIVisual',
+		capabilities: samples.HelloIVisual.capabilities,
+		create: () => new samples.HelloIVisual()
+	};
 
-    export let asterPlot: IVisualPlugin = {
-        name: 'asterPlot',
-        capabilities: samples.AsterPlot.capabilities,
-        create: () => new samples.AsterPlot()
-    };
+	export let asterPlot: IVisualPlugin = {
+		name: 'asterPlot',
+		capabilities: samples.AsterPlot.capabilities,
+		create: () => new samples.AsterPlot()
+	};
 
-    export let streamGraph: IVisualPlugin = {
-        name: 'streamGraph',
-        watermarkKey: 'lineChart',
-        capabilities: samples.StreamGraph.capabilities,
-        create: () => new samples.StreamGraph()
-    };
+	export let streamGraph: IVisualPlugin = {
+		name: 'streamGraph',
+		watermarkKey: 'lineChart',
+		capabilities: samples.StreamGraph.capabilities,
+		create: () => new samples.StreamGraph()
+	};
 
-    export var radarChart: IVisualPlugin = {
-        name: 'radarChart',
-        capabilities: samples.RadarChart.capabilities,
-        create: () => new samples.RadarChart()
-    };
+	export var radarChart: IVisualPlugin = {
+		name: 'radarChart',
+		capabilities: samples.RadarChart.capabilities,
+		create: () => new samples.RadarChart()
+	};
 
-    export var dotPlot: IVisualPlugin = {
-        name: 'dotPlot',
-        capabilities: samples.DotPlot.capabilities,
-        create: () => new samples.DotPlot()
-    };
+	export var dotPlot: IVisualPlugin = {
+		name: 'dotPlot',
+		capabilities: samples.DotPlot.capabilities,
+		create: () => new samples.DotPlot()
+	};
 
-    export var histogram: IVisualPlugin = {
-        name: "histogram",
-        capabilities: samples.Histogram.capabilities,
-        create: () => new samples.Histogram()
-    };
+	export var histogram: IVisualPlugin = {
+		name: "histogram",
+		capabilities: samples.Histogram.capabilities,
+		create: () => new samples.Histogram()
+	};
 
-    export var areaRangeChart: IVisualPlugin = {
-        name: 'areaRangeChart',
-        capabilities: samples.AreaRangeChart.capabilities,
-        create: () => new samples.AreaRangeChart()
-    };
+	export var areaRangeChart: IVisualPlugin = {
+		name: 'areaRangeChart',
+		capabilities: samples.AreaRangeChart.capabilities,
+		create: () => new samples.AreaRangeChart()
+	};
 
-    export var chicletSlicer: IVisualPlugin = {
-        name: 'chicletSlicer',
-        capabilities: samples.ChicletSlicer.capabilities,
-        create: () => new samples.ChicletSlicer()
-    };
+	export var chicletSlicer: IVisualPlugin = {
+		name: 'chicletSlicer',
+		capabilities: samples.ChicletSlicer.capabilities,
+		create: () => new samples.ChicletSlicer()
+	};
 
-    export var timeline: IVisualPlugin = {
-        name: 'timeline',
-        capabilities: samples.Timeline.capabilities,
-        create: () => new samples.Timeline()
-    };
+	export var timeline: IVisualPlugin = {
+		name: 'timeline',
+		capabilities: samples.Timeline.capabilities,
+		create: () => new samples.Timeline()
+	};
 
-    export var tornadoChart: IVisualPlugin = {
-        name: "tornadoChart",
-        capabilities: samples.TornadoChart.capabilities,
-        create: () => new samples.TornadoChart()
-    };
+	export var tornadoChart: IVisualPlugin = {
+		name: "tornadoChart",
+		capabilities: samples.TornadoChart.capabilities,
+		create: () => new samples.TornadoChart()
+	};
 
-    export var sankeyDiagram: IVisualPlugin = {
-        name: "sankeyDiagram",
-        capabilities: samples.SankeyDiagram.capabilities,
-        create: () => new samples.SankeyDiagram()
-    };
+	export var sankeyDiagram: IVisualPlugin = {
+		name: "sankeyDiagram",
+		capabilities: samples.SankeyDiagram.capabilities,
+		create: () => new samples.SankeyDiagram()
+	};
 
-    export var wordCloud: IVisualPlugin = {
-        name: "wordCloud",
-        capabilities: samples.WordCloud.capabilities,
-        create: () => new samples.WordCloud()
-    };
+	export var wordCloud: IVisualPlugin = {
+		name: "wordCloud",
+		capabilities: samples.WordCloud.capabilities,
+		create: () => new samples.WordCloud()
+	};
 
-    export var enhancedScatterChart: IVisualPlugin = {
-        name: 'enhancedScatterChart',
-        capabilities: samples.EnhancedScatterChart.capabilities,
-        create: () => new samples.EnhancedScatterChart()
-    };
+	export var enhancedScatterChart: IVisualPlugin = {
+		name: 'enhancedScatterChart',
+		capabilities: samples.EnhancedScatterChart.capabilities,
+		create: () => new samples.EnhancedScatterChart()
+	};
 
-    export var bulletChart: IVisualPlugin = {
-        name: "bulletChart",
-        capabilities: samples.BulletChart.capabilities,
-        create: () => new samples.BulletChart()
-    };
+	export var bulletChart: IVisualPlugin = {
+		name: "bulletChart",
+		capabilities: samples.BulletChart.capabilities,
+		create: () => new samples.BulletChart()
+	};
 
-    export var forceGraph: IVisualPlugin = {
-        name: "forceGraph",
-        capabilities: samples.ForceGraph.capabilities,
-        create: () => new samples.ForceGraph()
-    };
+	export var forceGraph: IVisualPlugin = {
+		name: "forceGraph",
+		capabilities: samples.ForceGraph.capabilities,
+		create: () => new samples.ForceGraph()
+	};
 
-    export var chordChart: IVisualPlugin = {
-        name: "chordChart",
-        capabilities: samples.ChordChart.capabilities,
-        create: () => new samples.ChordChart()
-    };
-    
-     export let mekkoChart: IVisualPlugin = {
-        name: 'mekkoChart',
-        watermarkKey: 'mekko',
-        capabilities: samples.MekkoChart.capabilities,
-        create: () => new samples.MekkoChart({ chartType: samples.MekkoChartType.HundredPercentStackedColumn }),
-        customizeQuery: ColumnChart.customizeQuery,
-        getSortableRoles: (visualSortableOptions?: VisualSortableOptions) => ColumnChart.getSortableRoles(visualSortableOptions),
-    };
+	export var chordChart: IVisualPlugin = {
+		name: "chordChart",
+		capabilities: samples.ChordChart.capabilities,
+		create: () => new samples.ChordChart()
+	};
+
+	export let mekkoChart: IVisualPlugin = {
+		name: 'mekkoChart',
+		watermarkKey: 'mekko',
+		capabilities: samples.MekkoChart.capabilities,
+		create: () => new samples.MekkoChart({ chartType: samples.MekkoChartType.HundredPercentStackedColumn }),
+		customizeQuery: ColumnChart.customizeQuery,
+		getSortableRoles: (visualSortableOptions?: VisualSortableOptions) => ColumnChart.getSortableRoles(visualSortableOptions),
+	};
+
+	export let valueSlicerVisual: IVisualPlugin = {
+		name: 'valueSlicerVisual',
+		capabilities: samples.ValueSlicerVisual.capabilities,
+		create: () => new samples.ValueSlicerVisual()
+	};
 }
